@@ -48,7 +48,17 @@ items_num = 13095
 
 
 # new data
-data_path = 'D:\\workData\\tecent_for_hawkes\\sample10000\\'
+# data_path = 'D:\\workData\\tecent_for_hawkes\\sample10000\\'
+# train_file = data_path + 'train.csv'
+# test_file = data_path + 'test.csv'
+#
+# dim = 4  # 1,3,7
+# days = 30
+# feature_day_list = [1,3,7,21]
+# items_num = 10000
+
+# final data
+data_path = 'D:\\workData\\tecent_for_hawkes\\sample_train10000\\'
 train_file = data_path + 'train.csv'
 test_file = data_path + 'test.csv'
 

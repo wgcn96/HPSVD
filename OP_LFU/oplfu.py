@@ -30,10 +30,11 @@ class OPLFU:
     cache_list
     cache_set
     """
-    def __init__(self, dataframe, item_num, test_day, func_num, cache_size, if_disp = False):
+    def __init__(self, dataframe, item_num, test_day, func_num, cache_size, max_day=30, if_disp = False):
         self.dataframe = dataframe
         self.item_num = item_num
         self.test_day = test_day
+        self.max_day = max_day
         self.func_num = func_num
         self.cache_size = cache_size
         self.item_list = self._Item_list(item_num, func_num)
@@ -54,8 +55,8 @@ class OPLFU:
 
     def _item_cdf(self, watch_time_df):
         total_count = len(watch_time_df)
-        time_vec = np.arange(start=0, stop=30, dtype=np.int32)
-        cdf_vec = np.zeros((30,), dtype=np.int32)
+        time_vec = np.arange(start=0, stop=self.max_day, dtype=np.int32)
+        cdf_vec = np.zeros((self.max_day,), dtype=np.int32)
         pos_list = []
         day_count_list = []
         for pos, day_count in watch_time_df.groupby(watch_time_df):
@@ -67,9 +68,13 @@ class OPLFU:
             cdf_vec[first_order:pos_list[i]] = first_num
             first_order = pos_list[i]
             first_num += day_count_list[i]
-        cdf_vec[first_order:self.test_day] = first_num
+        cdf_vec[first_order:] = first_num
         assert total_count == first_num     # debug use
         return time_vec, cdf_vec
+
+    @staticmethod
+    def inte_gauss(x, mu, sigma):
+        return np.power(np.e, -1 * (x - mu) * (x - mu) / (2 * sigma * sigma)) / np.sqrt(2 * np.pi * sigma * sigma)
     
     def estimate_test_day(self, time, para, func_type):
         def func_cons():
@@ -83,8 +88,15 @@ class OPLFU:
         def func_exp():
             f = para[0] * (1 - np.power(np.e, -1 * para[1] * time))
             return f
+        
+        def func_gauss():
+            term_sigma = 2 * para[1] * para[1]
+            regularization = 1 / np.sqrt(np.pi * term_sigma)
+            integrate_result, err = integrate.quad(self.inte_gauss, -np.inf, time, args=(para[0], para[1]))
+            f = regularization * integrate_result
+            return f
 
-        func_list = [func_cons, func_power, func_exp]
+        func_list = [func_cons, func_power, func_exp, func_gauss]
         return func_list[func_type]()
 
     def train_plus_test(self):
@@ -92,7 +104,10 @@ class OPLFU:
             start = time.time()
             print("current test day {}, begin to train the model".format(self.test_day))
 
-        for item_id, item in enumerate(self.item_list):
+        previous_items = self.dataframe[self.dataframe[2] < self.test_day][1].unique()
+
+        for item_id in previous_items:
+            item = self.item_list[item_id]
 
             if self.if_disp:
                 print("current item id: {}".format(item_id))
@@ -120,7 +135,18 @@ class OPLFU:
                 f = item_cdf_vec - (x[0] * (1 - np.power(np.e, -1 * x[1] * watch_time_vec)))
                 return f
 
-            func_list = [func_cons, func_power, func_exp]
+            def func_gaussian(x):
+                f = []
+                term_sigma = 2 * x[1] * x[1]
+                regularization = 1 / np.sqrt(np.pi * term_sigma)
+                for item, time in zip(item_cdf_vec, watch_time_vec):
+                    integrate_result, err = integrate.quad(self.inte_gauss, -np.inf, time, args=(x[0], x[1]))
+                    f_item = item - regularization * integrate_result
+                    f.append(f_item)
+                f = np.array(f)
+                return f
+
+            func_list = [func_cons, func_power, func_exp, func_gaussian]
             result_err = np.zeros((self.func_num,), np.float32)
             param_list = []
             for i in range(self.func_num):
@@ -144,7 +170,11 @@ class OPLFU:
             print("train and test finish, total time {}".format(time.time() - start))
 
     def cache_and_validate(self):
-        for item in self.item_list:
+
+        previous_items = self.dataframe[self.dataframe[2] < self.test_day][1].unique()
+
+        for item_id in previous_items:
+            item = self.item_list[item_id]
             if len(self.cache_set) < self.cache_size:
                 self.cache_set.add(item.id)
                 self.cache_list.put((item.estimate, item.id))
@@ -166,13 +196,32 @@ class OPLFU:
                 hit += 1
         return (hit, count)
 
+    def update_one_day(self):
+        """
+        天数加1
+        :return:
+        """
+        self.test_day += 1
+        self.cache_list = PriorityQueue()
+        self.cache_set = set()
+        if self.test_day > self.max_day:
+            raise Exception("days exceed")
+
+        if self.if_disp:
+            print("one day adances, current day {}".format(self.test_day))
+
+        # return self.cur_day
+
 
 if __name__ == '__main__':
     part_one = pd.read_csv(data_path + 'train.csv', header=None)
-    part_two = pd.read_csv(data_path + 'test.csv', header=None).drop([7], axis=1)
+    # part_two = pd.read_csv(data_path + 'test.csv', header=None).drop([7], axis=1)
+    part_two = pd.read_csv(data_path + 'test.csv', header=None)
     UIT = pd.concat([part_one, part_two], axis=0)
 
     level = 0
+    print(level)
+    print(data_path)
     result_list = []
     group_count = 0
 
@@ -181,16 +230,16 @@ if __name__ == '__main__':
         total_hit = 0
         total_count = 0
         for name, group in (UIT.groupby([level])):
+            print("current user {}".format(name))
             group_count += 1
             items_num = max(group[1] + 1)
+            oplfu = OPLFU(group, items_num, test_day=24, func_num=3, cache_size=cache_size, if_disp=True)
             for test_day in range(24, 30, 1):
-                # print("current test day {}".format(test_day))
-                oplfu = OPLFU(group, items_num, test_day, 3, cache_size=cache_size, if_disp=False)
                 oplfu.train_plus_test()
-
                 hit, count = oplfu.cache_and_validate()
                 total_hit += hit
                 total_count += count
+                oplfu.update_one_day()
                 # print("hit and count: {}, {}".format(hit, count))
         result_list.append(round(total_hit/total_count, 4))
         print("current hit rate {}".format(round(total_hit/total_count, 4)))

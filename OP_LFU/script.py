@@ -59,7 +59,7 @@ def func_gauss(x):
     # term
 
 
-def inte_guass(x, mu, sigma):
+def inte_gauss(x, mu, sigma):
     return np.power(np.e, -1*(x-mu)*(x-mu)/(2*sigma*sigma))/np.sqrt(2*np.pi*sigma*sigma)
 
 
@@ -69,8 +69,8 @@ if __name__ == '__main__':
     item_group = []
     for name, group in part_one.groupby([1]):
         item_group.append(group)
-    name = 99
-    item_chose = item_group[99]
+    name = 2
+    item_chose = item_group[2]
     watch_time_vec = item_chose[2].values
     item_cdf_vec = item_cdf(watch_time_vec)
 
@@ -81,6 +81,23 @@ if __name__ == '__main__':
     # sol = root(func, 0.3)
     # sol = root(func2, np.random.randn(2), jac=False, method='lm')
     # print(sol.x)
-    sol = root(func3, 0.3, method='lm')
+    # sol = root(func3, 0.3, method='lm')
 
-    result, err = integrate.quad(inte_guass, -np.inf, np.inf, args=(0,1))
+    result, err = integrate.quad(inte_gauss, -np.inf, np.inf, args=(0, 1))
+
+
+    def func_gaussian(x):
+        f = []
+        term_sigma = 2 * x[1] * x[1]
+        regularization = 1 / np.sqrt(np.pi * term_sigma)
+        for item, time in zip(item_cdf_vec, watch_time_vec):
+            print(item, time)   # debug
+            integrate_result, err = integrate.quad(inte_gauss, -np.inf, time, args=(x[0], x[1]))
+            f_item = item - regularization * integrate_result
+            print(f_item)   # debug
+            f.append(f_item)
+        f = np.array(f)
+        return f
+
+
+    sol = root(func_gaussian, np.random.randn(2), method='lm')

@@ -328,8 +328,8 @@ class Popcache:
 
 
 if __name__ == '__main__':
-    level = 0
-    flag = "不按天更新"
+    level = 6
+    # flag = "不按天更新"
     part_one = pd.read_csv(data_path + 'train.csv', header=None)
     part_two = pd.read_csv(data_path + 'test.csv', header=None).drop([7], axis=1)
     UIT = pd.concat([part_one, part_two], axis=0)

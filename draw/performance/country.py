@@ -11,36 +11,54 @@ __time__ = '2019/7/22'
 if __name__ == '__main__':
     import numpy as np
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import AutoLocator, ScalarFormatter
     import sys
 
-    plt.figure(figsize=(11.5, 8.5))
+    plt.figure(figsize=(11.5, 13.5))
 
     # HR
     # 100 missing value
-    lfu = [0.41, 0.76, 3.21, 6.76, 12.27]
-    lru = [0.60, 1.44, 4.95, 8.66, 12.36]
-    mean_popular = [1.63, 2.99, 6.75, 14.41, 23.02]
-    popcaching = [1.45, 1.74, 2.59, 3.95, 5.32]
-    oplfu = [1.45, 1.74, 2.59, 3.95, 5.32]
-    hp_svd = [1.55, 3.45, 7.77, 17.31, 24.17]
+    lfu = [4.45, 6.89, 16.03, 20.78, 22.66, 37.96, 52.24, ]
+    lru = [6.89, 17.31, 22.60, 28.14, 32.19, 49.82, 62.37, ]
+    mean_popular = [13.82, 22.08, 32.29, 38.48, 43.03, 57.16, 67.16, ]
+    hp_svd = [14.94, 24.01, 33.82, 39.63, 44.56, 56.95, 72.10, ]
+    popcaching = [0.09, 0.12, 0.12, 3.20, 4.27, 23.59, 42.86, ]
+    oplfu = [5.28, 9.85, 15.68, 15.68, 16.71, 31.71, 40.55, ]
 
-    x = [5, 10, 25, 50, 100]
-    plt.xlabel('The cache size', fontsize=24)
-    plt.ylabel('Hit rate percentage', fontsize=24)
+    x = [10, 25, 50, 75, 100, 250, 500]
+    plt.xlabel('The cache size', fontsize=40)
+    plt.ylabel('Hit rate percentage', fontsize=40)
 
-    plt.plot(x, lfu, '#A52A2A', label='LFU', linewidth=3, marker='p', markersize=10, markevery=(4, 5))
-    plt.plot(x, lru, '#FF69B4', label='LRU', linewidth=3, marker='h', markersize=10, markevery=(4, 5))
-    plt.plot(x, mean_popular, 'g', label='Mean-popular', linewidth=3, marker='s', markersize=10, markevery=(4, 5))
-    plt.plot(x, popcaching, 'b', label='Popcaching', linewidth=3, marker='<', markersize=10, markevery=(4, 5))
-    plt.plot(x, oplfu, 'c', label='OPLFU', linewidth=3, marker='o', markersize=10, markevery=(4, 5))
-    # plt.plot(x, hp_svd, '#D56F2B', label='MLP', linewidth=3, marker='D', markersize=10, markevery=(4, 5))
-    plt.plot(x, hp_svd, 'r', label='HP-SVD', linewidth=3, marker='v', markersize=10, markevery=(4, 5))
+    plt.plot(x, lfu, '#A52A2A', label='LFU', linewidth=4, marker='p', markersize=13, )
+    plt.plot(x, lru, '#FF69B4', label='LRU', linewidth=4, marker='h', markersize=13, )
+    plt.plot(x, oplfu, 'c', label='OPLFU', linewidth=4, marker='o', markersize=13, )
+    plt.plot(x, mean_popular, 'g', label='Mean-popular', linewidth=4, marker='s', markersize=13, )
+    plt.plot(x, popcaching, 'b', label='Popcaching', linewidth=4, marker='<', markersize=13, )
 
-    plt.ylim(ymin=0, ymax=25)
-    plt.xticks(np.arange(0, 110, 10), rotation=0, fontsize=24)
-    plt.yticks(np.arange(0, 30, 5), fontsize=24)
+    # plt.plot(x, hp_svd, '#D56F2B', label='MLP', linewidth=4, marker='D', markersize=13, )
+    plt.plot(x, hp_svd, 'r', label='HP-SVD', linewidth=4, marker='v', markersize=13, )
 
-    plt.legend(fontsize=24, loc=2, ncol=2, framealpha=0)
-    plt.grid()
-    plt.savefig('output/country')
+    plt.ylim(ymin=-5, ymax=90)
+    # plt.xlim(xmin=0,)
+    plt.xticks(np.arange(0, 600, 100), rotation=0, fontsize=36)
+    plt.yticks(np.arange(10, 90, 20), fontsize=36)
+
+    ax = plt.axes()
+    ax.set_xscale('log')
+    ax.xaxis.set_major_locator(AutoLocator())
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.minorticks_off()
+    ax.xaxis.set_ticks([10, 20, 40, 100, 500])
+
+    # tx0 = 290
+    # ty0 = 63
+    # tx1 = 100
+    # ty1 = 65
+    # arrow = plt.annotate('HP-SVD', xy=(tx0,ty0),xytext=(tx1,ty1),arrowprops=dict(facecolor='r', shrink=0.02, width=8, headwidth=12))
+    # arrow.set_color('red')
+    # arrow.set_size(36)
+
+    plt.legend(fontsize=34, loc=2, ncol=2, framealpha=0)
+    plt.grid(axis='y')
+    plt.savefig('output/country.eps')
     plt.show()

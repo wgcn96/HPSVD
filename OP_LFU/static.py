@@ -9,15 +9,15 @@ __author__ = 'Wang Chen'
 __time__ = '2019/7/15'
 
 # 100 user
-# users_num = 100
-# data_path = 'D:\\workData\\tecent_for_hawkes\\data{}\\'.format(users_num)
-# train_file = data_path + 'train.csv'
-# test_file = data_path + 'test.csv'
-#
-# dim = 3  # 1,3,7
-# days = 30
-# feature_day_list = [1,3,7]
-# items_num = 2169
+users_num = 100
+data_path = 'D:\\workData\\tecent_for_hawkes\\data{}\\'.format(users_num)
+train_file = data_path + 'train.csv'
+test_file = data_path + 'test.csv'
+
+dim = 3  # 1,3,7
+days = 30
+feature_day_list = [1,3,7]
+items_num = 2169
 
 
 
@@ -48,11 +48,22 @@ __time__ = '2019/7/15'
 
 
 # new data
-data_path = 'D:\\workData\\tecent_for_hawkes\\sample10000\\'
-train_file = data_path + 'train.csv'
-test_file = data_path + 'test.csv'
+# data_path = 'D:\\workData\\tecent_for_hawkes\\sample10000\\'
+# train_file = data_path + 'train.csv'
+# test_file = data_path + 'test.csv'
+#
+# dim = 4  # 1,3,7
+# days = 30
+# feature_day_list = [1,3,7,21]
+# items_num = 10000
 
-dim = 4  # 1,3,7
-days = 30
-feature_day_list = [1,3,7,21]
-items_num = 10000
+
+# final data
+# data_path = 'D:\\workData\\tecent_for_hawkes\\sample_train10000\\'
+# train_file = data_path + 'train.csv'
+# test_file = data_path + 'test.csv'
+#
+# dim = 4  # 1,3,7
+# days = 30
+# feature_day_list = [1,3,7,21]
+# items_num = 10000
