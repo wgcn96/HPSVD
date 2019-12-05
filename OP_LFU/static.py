@@ -2,6 +2,7 @@
 
 """
 note something here
+
 static path
 """
 

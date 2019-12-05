@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 
 """
-note something here
+main file for OPLFU paper
 
+--文件调用关系：
+    Item：视频类
+    script：相当于util，主要是实现积分时在该文件测试
+    static：静态路径文件，替换为自己的代码即可运行
+    __main__：主函数入口
 """
 
 __author__ = 'Wang Chen'
@@ -19,18 +24,38 @@ from scipy import integrate
 from OP_LFU.Item import Item
 from OP_LFU.static import *
 
+
 class OPLFU:
     """
-    UIT_dataframe
-    item_num
-    test_day
-    item_list
-    func_num
-    cache_size
-    cache_list
-    cache_set
+    王臣实现的OPLFU版本
+    核心思想：当前测试天由前面所有天训练数据训练模型，选择最优模型，进行popularity预测和缓存
+             缓存结束后验证 hit rate
+
+    @class members
+
+    UIT_dataframe : pandas dataframe (用户，视频，时间）数据
+    item_num : 视频数量
+    test_day : 当前测试天（例如前24天训练，第二十五天测试，则下标从0开始 test_day=24 ）
+    item_list : 所有视频的列表，注意视频用Item类的对象表示
+    func_num : 待选函数数量，本实现中func_num为4，分别为 常数 指数 幂函数 高斯函数
+    cache_size : 缓存列表大小
+    cache_list : 缓存列表
+    cache_set : 缓存集合（跟列表功能一样，为了快速查找）
+    if_disp : 输出，debug
+
+
+    @class funcs
+
+    train_plus_test : 训练当前test_day之前所有item的popularity拟合函数并记录
+
+    estimate_test_day : 评估当前test_day所有item此时的popularity
+
+    cache_and_validate : 缓存并验证是否击中
+
+    update_one_day : test_day += 1 （前进一天）
     """
-    def __init__(self, dataframe, item_num, test_day, func_num, cache_size, max_day=30, if_disp = False):
+
+    def __init__(self, dataframe, item_num, test_day, func_num, cache_size, max_day=30, if_disp=False):
         self.dataframe = dataframe
         self.item_num = item_num
         self.test_day = test_day
@@ -38,7 +63,7 @@ class OPLFU:
         self.func_num = func_num
         self.cache_size = cache_size
         self.item_list = self._Item_list(item_num, func_num)
-        for item_id, item_group in self.dataframe.groupby([1]):    ### leave a hard code for column index
+        for item_id, item_group in self.dataframe.groupby([1]):  ### leave a hard code for column index
             watch_time_df = item_group[2]
             watch_time_vec, item_cdf_vec = self._item_cdf(watch_time_df)
             self.item_list[item_id].watch_time_vec = watch_time_vec
@@ -50,10 +75,21 @@ class OPLFU:
         self.if_disp = if_disp
 
     def _Item_list(self, item_num, func_num):
+        """
+        初始化所有视频（Item）为类实例
+        :param item_num:
+        :param func_num:
+        :return:
+        """
         list = [Item(i, func_num) for i in range(item_num)]
         return list
 
     def _item_cdf(self, watch_time_df):
+        """
+        生成两个列表，时间（天）列表和对应的观看次数列表
+        :param watch_time_df:
+        :return:
+        """
         total_count = len(watch_time_df)
         time_vec = np.arange(start=0, stop=self.max_day, dtype=np.int32)
         cdf_vec = np.zeros((self.max_day,), dtype=np.int32)
@@ -69,14 +105,29 @@ class OPLFU:
             first_order = pos_list[i]
             first_num += day_count_list[i]
         cdf_vec[first_order:] = first_num
-        assert total_count == first_num     # debug use
+        assert total_count == first_num  # debug use
         return time_vec, cdf_vec
 
     @staticmethod
     def inte_gauss(x, mu, sigma):
+        """
+        高斯积分
+        静态函数，可以放在类外面
+        :param x:
+        :param mu:
+        :param sigma:
+        :return:
+        """
         return np.power(np.e, -1 * (x - mu) * (x - mu) / (2 * sigma * sigma)) / np.sqrt(2 * np.pi * sigma * sigma)
-    
+
     def estimate_test_day(self, time, para, func_type):
+        """
+        评估当前test_day所有item此时的popularity
+        :param time:
+        :param para:
+        :param func_type:
+        :return:
+        """
         def func_cons():
             f = (para[0] * time - para[1])
             return f
@@ -88,7 +139,7 @@ class OPLFU:
         def func_exp():
             f = para[0] * (1 - np.power(np.e, -1 * para[1] * time))
             return f
-        
+
         def func_gauss():
             term_sigma = 2 * para[1] * para[1]
             regularization = 1 / np.sqrt(np.pi * term_sigma)
@@ -100,6 +151,10 @@ class OPLFU:
         return func_list[func_type]()
 
     def train_plus_test(self):
+        """
+        训练当前test_day之前所有item的popularity拟合函数并记录
+        :return:
+        """
         if self.if_disp:
             start = time.time()
             print("current test day {}, begin to train the model".format(self.test_day))
@@ -159,9 +214,10 @@ class OPLFU:
 
             item.type = chose
             item.param = param
-            
+
             # item.estimate = func_list[item.type]()
-            item.estimate = self.estimate_test_day(self.test_day, item.param, item.type) - item.item_cdf_vec[self.test_day-1]
+            item.estimate = self.estimate_test_day(self.test_day, item.param, item.type) - item.item_cdf_vec[
+                self.test_day - 1]
 
             if self.if_disp:
                 print("item {} estimate {}".format(item_id, item.estimate))
@@ -170,7 +226,10 @@ class OPLFU:
             print("train and test finish, total time {}".format(time.time() - start))
 
     def cache_and_validate(self):
-
+        """
+        先进先出缓存队列并验证是否击中
+        :return:
+        """
         previous_items = self.dataframe[self.dataframe[2] < self.test_day][1].unique()
 
         for item_id in previous_items:
@@ -189,7 +248,8 @@ class OPLFU:
 
         hit = 0
         count = 0
-        current_testday_items = self.dataframe[self.dataframe[2] == self.test_day][1].values        ### leave a hard code for column index
+        current_testday_items = self.dataframe[self.dataframe[2] == self.test_day][
+            1].values  ### leave a hard code for column index
         for test_item in current_testday_items:
             count += 1
             if test_item in self.cache_set:
@@ -217,7 +277,7 @@ if __name__ == '__main__':
     part_one = pd.read_csv(data_path + 'train.csv', header=None)
     # part_two = pd.read_csv(data_path + 'test.csv', header=None).drop([7], axis=1)
     part_two = pd.read_csv(data_path + 'test.csv', header=None)
-    UIT = pd.concat([part_one, part_two], axis=0)
+    UIT = pd.concat([part_one, part_two], axis=0)       # 生成训练测试数据
 
     level = 0
     print(level)
@@ -225,22 +285,23 @@ if __name__ == '__main__':
     result_list = []
     group_count = 0
 
+    # 不同缓存大小
     for cache_size in [10, 25, 50, 75, 100, 250, 500]:
         print("current cache_size {}".format(cache_size))
         total_hit = 0
         total_count = 0
-        for name, group in (UIT.groupby([level])):
+        for name, group in (UIT.groupby([level])):      # 缓存层次（国家， 地区， 等）
             print("current user {}".format(name))
             group_count += 1
             items_num = max(group[1] + 1)
-            oplfu = OPLFU(group, items_num, test_day=24, func_num=3, cache_size=cache_size, if_disp=True)
+            oplfu = OPLFU(group, items_num, test_day=24, func_num=3, cache_size=cache_size, if_disp=True)   # 开始训练
             for test_day in range(24, 30, 1):
-                oplfu.train_plus_test()
-                hit, count = oplfu.cache_and_validate()
-                total_hit += hit
+                oplfu.train_plus_test()     # 训练
+                hit, count = oplfu.cache_and_validate()     # 验证
+                total_hit += hit        # 结果
                 total_count += count
-                oplfu.update_one_day()
+                oplfu.update_one_day()  # 天数加1
                 # print("hit and count: {}, {}".format(hit, count))
-        result_list.append(round(total_hit/total_count, 4))
-        print("current hit rate {}".format(round(total_hit/total_count, 4)))
+        result_list.append(round(total_hit / total_count, 4))
+        print("current hit rate {}".format(round(total_hit / total_count, 4)))
     print(result_list)

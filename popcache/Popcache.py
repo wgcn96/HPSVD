@@ -76,6 +76,10 @@ class Popcache:
         return hypercube_array
 
     def enumerate_hypercubes(self):
+        """
+        输出所有hypercube，debug
+        :return:
+        """
         hypercubes_list = self.hypercube_array
         for depth in range(self.dim-1):
             tmp_list = []
@@ -174,6 +178,10 @@ class Popcache:
         return total_popularity
 
     def update_cache_set(self):
+        """
+        更新缓存列表
+        :return:
+        """
         tmp_list = PriorityQueue()
         while not self.cache_list.empty():
             (old_priority, old_item) = self.cache_list.get()
@@ -252,6 +260,11 @@ class Popcache:
         return self.event_lastday_list
 
     def curday_event_into_cube(self, is_validate=False):
+        """
+        评估当前测试天的hit rate
+        :param is_validate:
+        :return:
+        """
         count = 0
         hit = 0
         for event in self.event_lastday_list:
@@ -275,6 +288,10 @@ class Popcache:
         return count, hit
 
     def print_cubes(self):
+        """
+        输出所有hypercube中的值，debug
+        :return:
+        """
         print("day {} show cubes".format(self.cur_day))
         hypercubes_list = self.enumerate_hypercubes()
 

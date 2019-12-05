@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 """
-note something here
+class for Item
+
+视频类
 
 """
 
@@ -11,11 +13,11 @@ __time__ = '2019/7/20'
 
 class Item:
     """
-    id:
-    type:
-    para_1:
-    para_2:
-    popu:
+    id: 视频编号
+    type: 拟合函数种类 （0 1 2 3）
+    param: 拟合函数参数
+    watch_time_vec: 时间列表
+    item_cdf_vec: 时间列表对应的观看频次cdf列表
     """
 
     def __init__(self, id, type):
